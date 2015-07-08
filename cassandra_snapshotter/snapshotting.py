@@ -1,6 +1,7 @@
 import re
 import shutil
 from boto.s3.connection import S3Connection
+from boto.s3.connection import (S3Connection, OrdinaryCallingFormat)
 from boto.s3.key import Key
 from boto.exception import S3ResponseError
 from datetime import datetime
@@ -96,7 +97,8 @@ class RestoreWorker(object):
         self.aws_secret_access_key = aws_secret_access_key
         self.aws_access_key_id = aws_access_key_id
         self.s3connection = S3Connection(aws_access_key_id=self.aws_access_key_id,
-                                         aws_secret_access_key=self.aws_secret_access_key)
+                                         aws_secret_access_key=self.aws_secret_access_key,
+                                         calling_format=OrdinaryCallingFormat())
         self.snapshot = snapshot
         self.keyspace_table_matcher = None
 
@@ -310,7 +312,11 @@ class BackupWorker(object):
         return schema
 
     def write_on_S3(self, bucket_name, path, content):
-        conn = S3Connection(self.aws_access_key_id, self.aws_secret_access_key, host=self.s3_connection_host)
+        conn = S3Connection(
+            self.aws_access_key_id,
+            self.aws_secret_access_key,
+            calling_format=OrdinaryCallingFormat(),
+            host=self.s3_connection_host)
         bucket = conn.get_bucket(bucket_name, validate=False)
         key = bucket.new_key(path)
         key.set_contents_from_string(content)
@@ -404,7 +410,10 @@ class SnapshotCollection(object):
         if self.snapshots:
             return
 
-        conn = S3Connection(self.aws_access_key_id, self.aws_secret_access_key)
+        conn = S3Connection(
+            self.aws_access_key_id,
+            self.aws_secret_access_key,
+            calling_format=OrdinaryCallingFormat())
         bucket = conn.get_bucket(self.s3_bucket, validate=False)
         self.snapshots = []
         prefix = self.base_path
